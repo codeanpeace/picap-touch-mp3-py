@@ -43,8 +43,14 @@ from glob import glob
 from time import sleep
 
 sensor = MPR121.begin()
-sensor.set_touch_threshold(40)
-sensor.set_release_threshold(20)
+
+# set threshold for touch
+# sensor.set_touch_threshold(40)
+# sensor.set_release_threshold(20)
+
+# set threshold for proximity
+sensor.set_touch_threshold(20)
+sensor.set_release_threshold(10)
 
 led = RGBLED(6, 5, 26, active_high=False)
 
@@ -59,6 +65,7 @@ led.off()
 pygame.mixer.pre_init(frequency=44100, channels=64, buffer=1024)
 pygame.init()
 
+selected_card = 2
 sounds = [Sound(path) for path in sorted(glob("tracks/.wavs/TRACK*.wav"))]
 
 def play_sounds_when_touched():
@@ -72,9 +79,24 @@ def play_sounds_when_touched():
                 # check if touch is registered to set the led status
                 is_any_touch_registered = True
             if sensor.is_new_touch(i):
+                # dropzones of two
+                if i in range(2):
+                    # TRACK000 (0, 1)
+                    index = i
+                # touch card header of six
+                if i in range(2, 8):
+                    # TRACK002 (2, 3, 4, 5, 6, 7)
+                    selected_card_index = i
+                    index = i
+                # dynamic values range(8..12)
+                else:
+                    # top card of six, first of four dynamic value => (2 * 10) + 8 - 7 = 21 => TRACK021 (21, 22, 23, 24)
+                    # bottom card of six, last of four dynamic value => (7 * 10) + 11 - 7 = 74 => TRACK074 (71, 72, 73, 74)
+                    index = (selected_card * 10) + i - 7
+                
                 # play sound associated with that touch
-                print ("playing sound: " + str(i))
-                sound = sounds[i]
+                sound = sounds[index]
+                print ("playing sound: " + str(index))
                 sound.play()
 
         if is_any_touch_registered:
